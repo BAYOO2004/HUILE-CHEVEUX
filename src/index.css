@@ -1,0 +1,115 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-pink-50: #f1eeff;
+  --color-pink-100: #e3ddff;
+  --color-pink-200: #cbbeff;
+  --color-pink-300: #aa95ff;
+  --color-pink-400: #8664fd;
+  --color-pink-500: #391CB7;
+  --color-pink-600: #2d149c;
+  --color-pink-700: #230e81;
+  --color-pink-800: #1b0a63;
+  --color-pink-900: #13064a;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+  }
+}
+
+.font-serif-premium {
+  font-family: var(--font-serif);
+}
+
+.font-sans-premium {
+  font-family: var(--font-sans);
+}
+
+/* Luxury gold shimmer effect for high-conversion buttons */
+@keyframes gold-shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.btn-gold-gradient {
+  background: linear-gradient(135deg, #D4AF37 0%, #F3E5AB 50%, #C5A028 100%);
+  background-size: 200% auto;
+  animation: gold-shimmer 4s ease infinite;
+}
+
+/* Soft ambient glow behind cards */
+.premium-glow {
+  box-shadow: 0 10px 40px -10px rgba(212, 175, 55, 0.15);
+}
+
+.premium-card-border {
+  border: 1px solid rgba(212, 175, 55, 0.12);
+}
+
+/* Custom premium progress bar */
+.progress-bar-gold {
+  background: linear-gradient(90deg, #D4AF37 0%, #F5D061 100%);
+}
+
+/* Pulse animation for active orders */
+@keyframes soft-pulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+.animate-soft-pulse {
+  animation: soft-pulse 2s infinite ease-in-out;
+}
+
+/* Infinite Marquee Animation for SaaS Social Proof */
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes marquee-reverse {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0%); }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 30s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+.animate-marquee-reverse {
+  display: flex;
+  width: max-content;
+  animation: marquee-reverse 30s linear infinite;
+}
+
+.animate-marquee-reverse:hover {
+  animation-play-state: paused;
+}
+
+

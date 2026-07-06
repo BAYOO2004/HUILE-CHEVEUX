@@ -1,0 +1,6 @@
+{
+  "name": "Golden Circle Hair Growth",
+  "description": "Premium landing page for Golden Circle Hair Growth Oil, featuring dynamic bundle packages, an AI Hair Diagnostic, and instant WhatsApp Cash-on-Delivery order processing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
