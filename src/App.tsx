@@ -214,6 +214,15 @@ export default function App() {
   
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [addressError, setAddressError] = useState<string | null>(null);
+  const [orderSuccessData, setOrderSuccessData] = useState<{
+    name: string;
+    phone: string;
+    city: string;
+    address: string;
+    bundleName: string;
+    totalPrice: number;
+    whatsappUrl: string;
+  } | null>(null);
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
   
   // Custom diagnostic state
@@ -545,19 +554,8 @@ export default function App() {
       notes: formData.notes
     };
 
-    try {
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderPayload)
-      });
-      const data = await response.json();
-      console.log("Order saved:", data);
-
-      showToast("Commande enregistrée avec succès ! Redirection vers WhatsApp...", "success");
-
-      const codBannerText = "*PAIEMENT A LA LIVRAISON (COD)*";
-      const whatsappMessage = `Bonjour Golden Circle !
+    const codBannerText = "*PAIEMENT A LA LIVRAISON (COD)*";
+    const whatsappMessage = `Bonjour Golden Circle !
 
 Je souhaite commander le pack de cure suivant :
 - Cure : *${selectedCure.name}* - ${selectedCure.volume}
@@ -576,19 +574,55 @@ ${diagnosticApplied ? `_Beneficiaire de l'offre Diagnostic IA_` : ''}
 ${codBannerText}
 Merci de confirmer ma commande et de planifier l'expedition !`;
 
-      const encodedMessage = encodeURIComponent(whatsappMessage);
-      const whatsappUrl = `https://wa.me/${BENIN_WHATSAPP}?text=${encodedMessage}`;
+    const encodedMessage = encodeURIComponent(whatsappMessage);
+    const whatsappUrl = `https://wa.me/${BENIN_WHATSAPP}?text=${encodedMessage}`;
+
+    try {
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderPayload)
+      });
+      const data = await response.json();
+      console.log("Order saved:", data);
+
+      showToast("Commande enregistrée avec succès ! Redirection vers WhatsApp...", "success");
+
+      setOrderSuccessData({
+        name: formData.name,
+        phone: `+229 ${formData.phone}`,
+        city: cityToSubmit,
+        address: formData.address,
+        bundleName: `${selectedCure.name} (${selectedCure.volume})`,
+        totalPrice: totalToPay,
+        whatsappUrl: whatsappUrl
+      });
+
+      // Open in a new tab safely
       setTimeout(() => {
         window.open(whatsappUrl, '_blank');
-      }, 1000);
+      }, 300);
 
     } catch (e) {
       console.error("Order save failure:", e);
-      showToast("Commande enregistrée localement (redirection secours WhatsApp...)", "info");
+      showToast("Commande enregistrée localement !", "info");
+      
       const fallbackMsg = `Bonjour ! Je souhaite commander ${selectedCure.name} pour ${selectedCure.price + shipping} FCFA. Nom: ${formData.name}, Tel: +229 ${formData.phone}, Ville: ${cityToSubmit}`;
+      const fallbackUrl = `https://wa.me/${BENIN_WHATSAPP}?text=${encodeURIComponent(fallbackMsg)}`;
+
+      setOrderSuccessData({
+        name: formData.name,
+        phone: `+229 ${formData.phone}`,
+        city: cityToSubmit,
+        address: formData.address,
+        bundleName: `${selectedCure.name} (${selectedCure.volume})`,
+        totalPrice: totalToPay,
+        whatsappUrl: fallbackUrl
+      });
+
       setTimeout(() => {
-        window.open(`https://wa.me/${BENIN_WHATSAPP}?text=${encodeURIComponent(fallbackMsg)}`, '_blank');
-      }, 1000);
+        window.open(fallbackUrl, '_blank');
+      }, 300);
     }
   };
 
@@ -1473,161 +1507,210 @@ Merci de confirmer ma commande et de planifier l'expedition !`;
           
           {/* Form Side */}
           <div className="lg:col-span-7 space-y-8">
-            <div className="space-y-2">
-              <span className="text-xs uppercase font-extrabold tracking-widest text-pink-600 block">Dernière étape de votre commande</span>
-              <h2 className="font-serif text-3xl md:text-4xl font-extrabold text-stone-950">Informations de livraison</h2>
-              <p className="text-stone-500 text-sm font-light">
-                Entrez vos coordonnées ci-dessous pour préparer l'expédition de votre colis. Aucun paiement en ligne n'est requis. Vous payez en espèces à la livraison chez vous.
-              </p>
-            </div>
-
-            <form onSubmit={handleSubmitOrder} className="bg-white p-6 md:p-8 rounded-3xl border border-pink-100 shadow-lg space-y-6">
-              
-              {/* Product chosen snapshot */}
-              <div className="p-4 bg-pink-50/10 rounded-2xl border border-pink-100 flex items-center justify-between">
-                <div>
-                  <span className="text-[9px] uppercase font-bold tracking-widest text-pink-700">Cure sélectionnée :</span>
-                  <h4 className="font-serif font-bold text-sm text-stone-950">{selectedCure.name}</h4>
-                  <p className="text-stone-400 text-xs mt-0.5">{selectedCure.volume}</p>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs text-stone-400 line-through block">{selectedCure.originalPrice.toLocaleString('fr-FR')} FCFA</span>
-                  <span className="font-bold text-sm text-pink-600">{selectedCure.price.toLocaleString('fr-FR')} FCFA</span>
-                </div>
-              </div>
-
-              {/* Name */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-extrabold text-stone-950 uppercase tracking-wider block">Votre Nom et Prénom :</label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-stone-400">
-                    <User className="w-4 h-4" />
-                  </span>
-                  <input 
-                    type="text" 
-                    required
-                    placeholder="Exemple: Amina Soglo"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-pink-500 focus:bg-white transition"
-                  />
-                </div>
-              </div>
-
-              {/* Phone */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-extrabold text-stone-950 uppercase tracking-wider block">Numéro de téléphone actif (WhatsApp) :</label>
-                <div className="flex">
-                  <span className={`inline-flex items-center px-3.5 bg-stone-100 border ${phoneError ? 'border-red-400' : 'border-stone-200'} border-r-0 rounded-l-xl text-xs font-extrabold text-stone-600 transition-colors`}>
-                    +229
-                  </span>
-                  <input 
-                    type="tel" 
-                    required
-                    placeholder="Exemple: 0196xxxxxx ou 90xxxxxx"
-                    value={formData.phone}
-                    onChange={(e) => handlePhoneChange(e.target.value)}
-                    className={`w-full px-4 py-3 bg-stone-50 border ${phoneError ? 'border-red-400 focus:border-red-500' : 'border-stone-200 focus:border-pink-500'} rounded-r-xl text-sm focus:outline-none focus:bg-white transition`}
-                  />
-                </div>
-                {phoneError ? (
-                  <p className="text-red-600 text-[11px] font-bold mt-1 flex items-center gap-1.5 animate-pulse">
-                    <AlertCircle className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />
-                    {phoneError}
+            {!orderSuccessData ? (
+              <>
+                <div className="space-y-2">
+                  <span className="text-xs uppercase font-extrabold tracking-widest text-pink-600 block">Dernière étape de votre commande</span>
+                  <h2 className="font-serif text-3xl md:text-4xl font-extrabold text-stone-950">Informations de livraison</h2>
+                  <p className="text-stone-500 text-sm font-light">
+                    Entrez vos coordonnées ci-dessous pour préparer l'expédition de votre colis. Aucun paiement en ligne n'est requis. Vous payez en espèces à la livraison chez vous.
                   </p>
-                ) : (
-                  <span className="text-[10px] text-stone-400">Le livreur vous appellera sur ce numéro avant de se présenter chez vous.</span>
-                )}
-              </div>
-
-              {/* City Selection */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-extrabold text-stone-950 uppercase tracking-wider block">Ville de livraison :</label>
-                  <div className="relative">
-                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-stone-400">
-                      <MapPin className="w-4 h-4" />
-                    </span>
-                    <select
-                      value={formData.city}
-                      onChange={(e) => setFormData({...formData, city: e.target.value})}
-                      className="w-full pl-10 pr-8 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-pink-500 focus:bg-white transition appearance-none cursor-pointer font-semibold text-stone-950"
-                    >
-                      {BENIN_CITIES.map((c) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                      <option value="Autre">Autre Ville (A préciser)</option>
-                    </select>
-                    <span className="absolute inset-y-0 right-0 pr-3 flex items-center text-stone-400 pointer-events-none">
-                      <ChevronDown className="w-4 h-4" />
-                    </span>
-                  </div>
                 </div>
 
-                {formData.city === 'Autre' && (
-                  <div className="space-y-1.5 animate-fadeIn">
-                    <label className="text-xs font-extrabold text-stone-950 uppercase tracking-wider block">Précisez votre Ville :</label>
-                    <input 
-                      type="text" 
-                      required
-                      placeholder="Ex: Tanguiéta, Grand-Popo"
-                      value={formData.customCity}
-                      onChange={(e) => setFormData({...formData, customCity: e.target.value})}
-                      className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-pink-500 focus:bg-white transition"
+                <form onSubmit={handleSubmitOrder} className="bg-white p-6 md:p-8 rounded-3xl border border-pink-100 shadow-lg space-y-6">
+                  
+                  {/* Product chosen snapshot */}
+                  <div className="p-4 bg-pink-50/10 rounded-2xl border border-pink-100 flex items-center justify-between">
+                    <div>
+                      <span className="text-[9px] uppercase font-bold tracking-widest text-pink-700">Cure sélectionnée :</span>
+                      <h4 className="font-serif font-bold text-sm text-stone-950">{selectedCure.name}</h4>
+                      <p className="text-stone-400 text-xs mt-0.5">{selectedCure.volume}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs text-stone-400 line-through block">{selectedCure.originalPrice.toLocaleString('fr-FR')} FCFA</span>
+                      <span className="font-bold text-sm text-pink-600">{selectedCure.price.toLocaleString('fr-FR')} FCFA</span>
+                    </div>
+                  </div>
+
+                  {/* Name */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-extrabold text-stone-950 uppercase tracking-wider block">Votre Nom et Prénom :</label>
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-stone-400">
+                        <User className="w-4 h-4" />
+                      </span>
+                      <input 
+                        type="text" 
+                        required
+                        placeholder="Exemple: Amina Soglo"
+                        value={formData.name}
+                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                        className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-pink-500 focus:bg-white transition"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Phone */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-extrabold text-stone-950 uppercase tracking-wider block">Numéro de téléphone actif (WhatsApp) :</label>
+                    <div className="flex">
+                      <span className={`inline-flex items-center px-3.5 bg-stone-100 border ${phoneError ? 'border-red-400' : 'border-stone-200'} border-r-0 rounded-l-xl text-xs font-extrabold text-stone-600 transition-colors`}>
+                        +229
+                      </span>
+                      <input 
+                        type="tel" 
+                        required
+                        placeholder="Exemple: 0196xxxxxx ou 90xxxxxx"
+                        value={formData.phone}
+                        onChange={(e) => handlePhoneChange(e.target.value)}
+                        className={`w-full px-4 py-3 bg-stone-50 border ${phoneError ? 'border-red-400 focus:border-red-500' : 'border-stone-200 focus:border-pink-500'} rounded-r-xl text-sm focus:outline-none focus:bg-white transition`}
+                      />
+                    </div>
+                    {phoneError ? (
+                      <p className="text-red-600 text-[11px] font-bold mt-1 flex items-center gap-1.5 animate-pulse">
+                        <AlertCircle className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />
+                        {phoneError}
+                      </p>
+                    ) : (
+                      <span className="text-[10px] text-stone-400">Le livreur vous appellera sur ce numéro avant de se présenter chez vous.</span>
+                    )}
+                  </div>
+
+                  {/* City Selection */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-extrabold text-stone-950 uppercase tracking-wider block">Ville de livraison :</label>
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-stone-400">
+                          <MapPin className="w-4 h-4" />
+                        </span>
+                        <select
+                          value={formData.city}
+                          onChange={(e) => setFormData({...formData, city: e.target.value})}
+                          className="w-full pl-10 pr-8 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-pink-500 focus:bg-white transition appearance-none cursor-pointer font-semibold text-stone-950"
+                        >
+                          {BENIN_CITIES.map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                          <option value="Autre">Autre Ville (A préciser)</option>
+                        </select>
+                        <span className="absolute inset-y-0 right-0 pr-3 flex items-center text-stone-400 pointer-events-none">
+                          <ChevronDown className="w-4 h-4" />
+                        </span>
+                      </div>
+                    </div>
+
+                    {formData.city === 'Autre' && (
+                      <div className="space-y-1.5 animate-fadeIn">
+                        <label className="text-xs font-extrabold text-stone-950 uppercase tracking-wider block">Précisez votre Ville :</label>
+                        <input 
+                          type="text" 
+                          required
+                          placeholder="Ex: Tanguiéta, Grand-Popo"
+                          value={formData.customCity}
+                          onChange={(e) => setFormData({...formData, customCity: e.target.value})}
+                          className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-pink-500 focus:bg-white transition"
+                        />
+                      </div>
+                    )}
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-extrabold text-stone-950 uppercase tracking-wider block">Quartier / Adresse précise :</label>
+                      <input 
+                        type="text" 
+                        required
+                        placeholder="Ex: Fidjrossè, rue de l'Étoile Rouge"
+                        value={formData.address}
+                        onChange={(e) => {
+                          setFormData({...formData, address: e.target.value});
+                          if (e.target.value.trim()) {
+                            setAddressError(null);
+                          }
+                        }}
+                        className={`w-full px-4 py-3 bg-stone-50 border ${addressError ? 'border-red-400 focus:border-red-500' : 'border-stone-200 focus:border-pink-500'} rounded-xl text-sm focus:outline-none focus:bg-white transition`}
+                      />
+                      {addressError && (
+                        <p className="text-red-600 text-[11px] font-bold mt-1 flex items-center gap-1.5 animate-pulse">
+                          <AlertCircle className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />
+                          {addressError}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Notes */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-extrabold text-stone-950 uppercase tracking-wider block">Note pour le livreur (Optionnel) :</label>
+                    <textarea 
+                      placeholder="Ex: Livrer de préférence l'après-midi, appeler 30 min à l'avance..."
+                      value={formData.notes}
+                      onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                      className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-pink-500 focus:bg-white transition h-20 resize-none"
                     />
                   </div>
-                )}
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-extrabold text-stone-950 uppercase tracking-wider block">Quartier / Adresse précise :</label>
-                  <input 
-                    type="text" 
-                    required
-                    placeholder="Ex: Fidjrossè, rue de l'Étoile Rouge"
-                    value={formData.address}
-                    onChange={(e) => {
-                      setFormData({...formData, address: e.target.value});
-                      if (e.target.value.trim()) {
-                        setAddressError(null);
-                      }
-                    }}
-                    className={`w-full px-4 py-3 bg-stone-50 border ${addressError ? 'border-red-400 focus:border-red-500' : 'border-stone-200 focus:border-pink-500'} rounded-xl text-sm focus:outline-none focus:bg-white transition`}
-                  />
-                  {addressError && (
-                    <p className="text-red-600 text-[11px] font-bold mt-1 flex items-center gap-1.5 animate-pulse">
-                      <AlertCircle className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />
-                      {addressError}
-                    </p>
-                  )}
+                  {/* High converting CTA */}
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      className="w-full py-5 rounded-full bg-[#391CB7] hover:bg-pink-600 text-white font-extrabold text-sm uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 transition-all duration-300 border border-white/20"
+                    >
+                      <ShoppingBag className="w-5 h-5 text-white" />
+                      <span>Confirmer & Commander sur WhatsApp</span>
+                    </button>
+                    <span className="text-[10px] text-stone-400 text-center block mt-3 font-semibold">
+                      En cliquant, votre commande est sauvegardée et le message de confirmation se remplit automatiquement sur votre WhatsApp.
+                    </span>
+                  </div>
+
+                </form>
+              </>
+            ) : (
+              <div className="bg-white p-6 md:p-8 rounded-3xl border-2 border-green-200 shadow-xl space-y-6 text-center animate-fadeIn">
+                <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto text-green-600 shadow-inner">
+                  <CheckCircle className="w-10 h-10 text-green-500 animate-pulse" />
+                </div>
+                
+                <div className="space-y-2">
+                  <h3 className="font-serif text-2xl md:text-3xl font-extrabold text-stone-950">🎉 Commande Reçue !</h3>
+                  <p className="text-green-700 text-xs font-bold bg-green-50 py-2.5 px-4 rounded-xl border border-green-200 inline-block">
+                    Votre commande a bien été enregistrée dans notre système de livraison.
+                  </p>
+                </div>
+
+                <div className="p-5 bg-stone-50 rounded-2xl border border-stone-200 text-left space-y-3 text-xs text-stone-700">
+                  <h4 className="font-bold text-stone-900 border-b border-stone-200 pb-1.5 uppercase tracking-wider">Récapitulatif de votre livraison :</h4>
+                  <p><span className="font-semibold text-stone-500">Client :</span> {orderSuccessData.name}</p>
+                  <p><span className="font-semibold text-stone-500">Téléphone :</span> {orderSuccessData.phone}</p>
+                  <p><span className="font-semibold text-stone-500">Ville & Adresse :</span> {orderSuccessData.city}, {orderSuccessData.address}</p>
+                  <p><span className="font-semibold text-stone-500">Cure choisie :</span> {orderSuccessData.bundleName}</p>
+                  <p className="pt-1.5 border-t border-stone-200 flex justify-between items-center text-sm">
+                    <span className="font-bold text-stone-900">Total à payer (COD) :</span> 
+                    <span className="font-black text-[#391CB7] text-base">{orderSuccessData.totalPrice.toLocaleString('fr-FR')} FCFA</span>
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <p className="text-xs text-stone-500 font-light">
+                    Pour valider immédiatement votre adresse avec notre service d'expédition et accélérer l'envoi de votre colis, cliquez sur le bouton ci-dessous pour nous envoyer votre confirmation préremplie sur WhatsApp.
+                  </p>
+
+                  <a
+                    href={orderSuccessData.whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-4.5 rounded-full bg-[#25D366] hover:bg-[#20ba5a] text-white font-extrabold text-sm uppercase tracking-widest shadow-lg flex items-center justify-center gap-3 transition-all duration-300 transform hover:scale-105 active:scale-95 border border-white/20 animate-bounce"
+                  >
+                    <MessageCircle className="w-5 h-5 fill-white" />
+                    <span>Cliquez ici pour finaliser sur WhatsApp</span>
+                  </a>
+
+                  <p className="text-[10px] text-stone-400 font-semibold italic">
+                    Si la redirection automatique ne s'est pas lancée, veuillez cliquer sur le bouton vert ci-dessus.
+                  </p>
                 </div>
               </div>
-
-              {/* Notes */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-extrabold text-stone-950 uppercase tracking-wider block">Note pour le livreur (Optionnel) :</label>
-                <textarea 
-                  placeholder="Ex: Livrer de préférence l'après-midi, appeler 30 min à l'avance..."
-                  value={formData.notes}
-                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-pink-500 focus:bg-white transition h-20 resize-none"
-                />
-              </div>
-
-              {/* High converting CTA */}
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  className="w-full py-5 rounded-full bg-[#391CB7] hover:bg-pink-600 text-white font-extrabold text-sm uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 transition-all duration-300 border border-white/20"
-                >
-                  <ShoppingBag className="w-5 h-5 text-white" />
-                  <span>Confirmer & Commander sur WhatsApp</span>
-                </button>
-                <span className="text-[10px] text-stone-400 text-center block mt-3 font-semibold">
-                  En cliquant, votre commande est sauvegardée et le message de confirmation se remplit automatiquement sur votre WhatsApp.
-                </span>
-              </div>
-
-            </form>
+            )}
           </div>
 
           {/* Checkout Breakdown Sidebar */}
