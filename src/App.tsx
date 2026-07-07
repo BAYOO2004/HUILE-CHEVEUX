@@ -23,6 +23,7 @@ import {
   Info, 
   X, 
   MessageSquare, 
+  MessageCircle,
   Database, 
   Copy, 
   Check,
@@ -41,6 +42,7 @@ import {
   HelpCircle as QuestionIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { initMetaPixel, trackMetaEvent } from './lib/metaPixel';
 
 const bottleImg = "https://pluhjzrozhfkyzbuwqij.supabase.co/storage/v1/object/public/IMAGES/HUILE%20IMAGES/gen-019f2717-1866-7f50-914c-71f793be62c3-0.png";
 import lifestyleImg from './assets/images/hair_lifestyle_1783326007965.jpg';
@@ -108,7 +110,7 @@ const BENIN_CITIES = [
   'Allada'
 ];
 
-const BENIN_WHATSAPP = import.meta.env.VITE_WHATSAPP_NUMBER || '22990000000'; // Benin Order Hotline
+const BENIN_WHATSAPP = import.meta.env.VITE_WHATSAPP_NUMBER || '2290192570665'; // Benin Order Hotline
 
 // Shipping calculation helper
 const getShippingPrice = (city: string, bottlesCount: number, price: number = 10000) => {
@@ -210,6 +212,10 @@ export default function App() {
     notes: ''
   });
   
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [addressError, setAddressError] = useState<string | null>(null);
+  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
+  
   // Custom diagnostic state
   const [diagnosticStep, setDiagnosticStep] = useState(1);
   const [diagnosticAnswers, setDiagnosticAnswers] = useState({
@@ -268,6 +274,56 @@ export default function App() {
     const x = e.clientX - rect.left;
     const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
     setSliderPosition(percentage);
+  };
+
+  // Initialize Meta Pixel on mount
+  useEffect(() => {
+    initMetaPixel();
+  }, []);
+
+  // Countdown timer for announcement banner (promotional urgency)
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const now = new Date();
+      const midnight = new Date();
+      midnight.setHours(24, 0, 0, 0); // Next midnight
+      const diff = midnight.getTime() - now.getTime();
+      
+      let hours = Math.floor(diff / (1000 * 60 * 60));
+      let minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      let seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      
+      if (hours < 0) hours = 0;
+      if (minutes < 0) minutes = 0;
+      if (seconds < 0) seconds = 0;
+      
+      return { hours, minutes, seconds };
+    };
+
+    setTimeLeft(calculateTimeLeft());
+
+    const timer = setInterval(() => {
+      setTimeLeft(calculateTimeLeft());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Phone number real-time validation handler
+  const handlePhoneChange = (val: string) => {
+    const cleaned = val.replace(/\s/g, '');
+    setFormData(prev => ({ ...prev, phone: cleaned }));
+    
+    const digitsOnly = cleaned.replace(/\D/g, '');
+    if (cleaned.length > 0 && cleaned !== digitsOnly) {
+      setPhoneError("Le numéro ne doit contenir que des chiffres.");
+    } else if (cleaned.length > 0 && cleaned.length !== 8 && cleaned.length !== 10) {
+      setPhoneError("Le numéro au Bénin doit comporter exactement 8 ou 10 chiffres (Ex: 0196XXXXXX ou 90XXXXXX).");
+    } else if (cleaned.length === 10 && !cleaned.startsWith('01')) {
+      setPhoneError("Un numéro béninois à 10 chiffres doit commencer par '01'.");
+    } else {
+      setPhoneError(null);
+    }
   };
 
   // Generate Live Ticker Purchases
@@ -437,9 +493,25 @@ export default function App() {
 
     const cleanPhone = formData.phone.trim().replace(/\D/g, '');
     if (cleanPhone.length !== 8 && cleanPhone.length !== 10) {
-      showToast("Le numéro de téléphone Bénin doit comporter exactement 8 ou 10 chiffres (ex: 0196XXXXXX).", "error");
+      setPhoneError("Le numéro au Bénin doit comporter exactement 8 ou 10 chiffres (Ex: 0196XXXXXX ou 90XXXXXX).");
+      showToast("Le numéro de téléphone Bénin doit comporter exactement 8 ou 10 chiffres.", "error");
       return;
     }
+
+    if (cleanPhone.length === 10 && !cleanPhone.startsWith('01')) {
+      setPhoneError("Un numéro béninois à 10 chiffres doit commencer par '01'.");
+      showToast("Un numéro béninois à 10 chiffres doit commencer par '01'.", "error");
+      return;
+    }
+
+    setPhoneError(null);
+
+    if (!formData.address.trim()) {
+      setAddressError("Veuillez préciser votre quartier ou adresse précise pour la livraison.");
+      showToast("Veuillez renseigner votre quartier ou adresse précise.", "error");
+      return;
+    }
+    setAddressError(null);
 
     const cityToSubmit = formData.city === 'Autre' ? formData.customCity : formData.city;
     if (!cityToSubmit) {
@@ -450,6 +522,16 @@ export default function App() {
     const finalPrice = selectedCure.price;
     const shipping = getShippingPrice(cityToSubmit, selectedCure.bottlesCount, finalPrice);
     const totalToPay = finalPrice + shipping;
+
+    // Track Meta Pixel InitiateCheckout Event
+    trackMetaEvent('InitiateCheckout', {
+      value: totalToPay,
+      currency: 'XOF',
+      content_name: selectedCure.name,
+      content_ids: [selectedCure.id],
+      content_type: 'product',
+      num_items: selectedCure.bottlesCount
+    });
 
     const orderPayload = {
       customer_name: formData.name,
@@ -532,11 +614,20 @@ Merci de confirmer ma commande et de planifier l'expedition !`;
       <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-gradient-to-tr from-pink-300/10 to-pink-200/5 blur-[120px] pointer-events-none -z-10" />
       <div className="absolute top-[800px] right-10 w-[500px] h-[500px] bg-gradient-to-br from-pink-400/5 to-pink-300/5 blur-[100px] pointer-events-none -z-10" />
 
-      {/* 1. Dynamic Vibrant Header Banner - Sleek Dark Charcoal like the AFTER mockup */}
-      <div id="announcement-banner" className="bg-stone-950 text-white py-3 px-4 text-center text-xs md:text-sm font-semibold tracking-wider flex items-center justify-center gap-2 shadow-inner">
-        <span className="w-2 h-2 rounded-full bg-pink-500 animate-pulse"></span>
-        <span className="uppercase tracking-widest text-[11px] md:text-xs">LIVRAISON GRATUITE SUR TOUT LE BENIN DÈS 10 000 FCFA • 🛍️ • COMMANDEZ MAINTENANT</span>
-        <span className="w-2 h-2 rounded-full bg-pink-500 animate-pulse"></span>
+      {/* 1. Dynamic Vibrant Header Banner - Sleek Dark Charcoal with Real-time Countdown */}
+      <div id="announcement-banner" className="bg-stone-950 text-white py-2.5 px-4 text-center text-xs font-semibold tracking-wider flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 shadow-inner">
+        <div className="flex items-center gap-2 justify-center">
+          <span className="w-2 h-2 rounded-full bg-pink-500 animate-pulse"></span>
+          <span className="uppercase tracking-widest text-[10px] sm:text-[11px] md:text-xs">LIVRAISON GRATUITE SUR TOUT LE BENIN DÈS 10 000 FCFA</span>
+          <span className="w-2 h-2 rounded-full bg-pink-500 animate-pulse"></span>
+        </div>
+        <div className="flex items-center gap-1.5 bg-pink-950/40 border border-pink-500/20 px-3 py-1 rounded-full text-[10px] sm:text-[11px] text-pink-400 font-bold">
+          <Clock className="w-3.5 h-3.5" />
+          <span>La promo se termine dans :</span>
+          <span className="font-mono text-white bg-stone-900 px-1.5 py-0.5 rounded border border-white/5">
+            {String(timeLeft.hours).padStart(2, '0')}h : {String(timeLeft.minutes).padStart(2, '0')}m : {String(timeLeft.seconds).padStart(2, '0')}s
+          </span>
+        </div>
       </div>
 
       {/* 2. Premium Luxury Navigation Header - Vibrant Royal Indigo from mockup */}
@@ -1427,19 +1518,26 @@ Merci de confirmer ma commande et de planifier l'expedition !`;
               <div className="space-y-1.5">
                 <label className="text-xs font-extrabold text-stone-950 uppercase tracking-wider block">Numéro de téléphone actif (WhatsApp) :</label>
                 <div className="flex">
-                  <span className="inline-flex items-center px-3.5 bg-stone-100 border border-stone-200 border-r-0 rounded-l-xl text-xs font-extrabold text-stone-600">
+                  <span className={`inline-flex items-center px-3.5 bg-stone-100 border ${phoneError ? 'border-red-400' : 'border-stone-200'} border-r-0 rounded-l-xl text-xs font-extrabold text-stone-600 transition-colors`}>
                     +229
                   </span>
                   <input 
                     type="tel" 
                     required
-                    placeholder="Exemple: 90000000"
+                    placeholder="Exemple: 0196xxxxxx ou 90xxxxxx"
                     value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value.replace(/\s/g, '')})}
-                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-r-xl text-sm focus:outline-none focus:border-pink-500 focus:bg-white transition"
+                    onChange={(e) => handlePhoneChange(e.target.value)}
+                    className={`w-full px-4 py-3 bg-stone-50 border ${phoneError ? 'border-red-400 focus:border-red-500' : 'border-stone-200 focus:border-pink-500'} rounded-r-xl text-sm focus:outline-none focus:bg-white transition`}
                   />
                 </div>
-                <span className="text-[10px] text-stone-400">Le livreur vous appellera sur ce numéro avant de se présenter chez vous.</span>
+                {phoneError ? (
+                  <p className="text-red-600 text-[11px] font-bold mt-1 flex items-center gap-1.5 animate-pulse">
+                    <AlertCircle className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />
+                    {phoneError}
+                  </p>
+                ) : (
+                  <span className="text-[10px] text-stone-400">Le livreur vous appellera sur ce numéro avant de se présenter chez vous.</span>
+                )}
               </div>
 
               {/* City Selection */}
@@ -1487,9 +1585,20 @@ Merci de confirmer ma commande et de planifier l'expedition !`;
                     required
                     placeholder="Ex: Fidjrossè, rue de l'Étoile Rouge"
                     value={formData.address}
-                    onChange={(e) => setFormData({...formData, address: e.target.value})}
-                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-pink-500 focus:bg-white transition"
+                    onChange={(e) => {
+                      setFormData({...formData, address: e.target.value});
+                      if (e.target.value.trim()) {
+                        setAddressError(null);
+                      }
+                    }}
+                    className={`w-full px-4 py-3 bg-stone-50 border ${addressError ? 'border-red-400 focus:border-red-500' : 'border-stone-200 focus:border-pink-500'} rounded-xl text-sm focus:outline-none focus:bg-white transition`}
                   />
+                  {addressError && (
+                    <p className="text-red-600 text-[11px] font-bold mt-1 flex items-center gap-1.5 animate-pulse">
+                      <AlertCircle className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />
+                      {addressError}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -1688,57 +1797,41 @@ Merci de confirmer ma commande et de planifier l'expedition !`;
       </section>
 
       {/* 12. Elegant Footer & Benin Local Contact Information */}
-      <footer className="bg-stone-950 text-white py-16 text-left border-t border-pink-900/10 relative">
+      <footer className="bg-stone-950 text-white py-6 text-left border-t border-pink-900/10 relative">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom,rgba(57,28,183,0.08),transparent_70%)] pointer-events-none" />
-        <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 md:grid-cols-12 gap-12 z-10 relative">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 z-10 relative">
           
-          <div className="md:col-span-5 space-y-6">
-            <div className="flex items-center gap-3">
-              <GoldenCircleLogo className="w-8 h-8" />
-              <span className="font-serif text-xl font-black tracking-widest text-[#391CB7]">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <GoldenCircleLogo className="w-6 h-6" />
+              <span className="font-serif text-lg font-black tracking-widest text-[#391CB7]">
                 GOLDEN <span className="font-sans text-white">CIRCLE</span>
               </span>
             </div>
-            <p className="text-stone-400 text-xs leading-relaxed max-w-sm font-light">
-              Notre mission est d'offrir le meilleur de la trichologie naturelle pour redonner force, epaisseur et longueur aux cheveux d'Afrique. Notre huile est fabriquee selon des standards de purete stricts.
+            <p className="text-stone-400 text-[10px] leading-relaxed max-w-sm font-light">
+              Le meilleur de la trichologie naturelle pour redonner force, épaisseur et longueur aux cheveux d'Afrique.
             </p>
-            <div className="pt-2 text-xs text-stone-400 font-light">
-              <p className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-pink-500" />
-                <span>Distribution Centrale : Fidjrosse, Cotonou, Benin</span>
-              </p>
-              <p className="flex items-center gap-2 mt-2">
-                <Phone className="w-4 h-4 text-pink-500" />
-                <span>Service client local : +229 90 00 00 00</span>
-              </p>
+          </div>
+
+          <div className="text-[10px] text-stone-400 font-light space-y-1">
+            <p className="flex items-center gap-1.5">
+              <MapPin className="w-3 h-3 text-pink-500" />
+              <span>Fidjrossè, Cotonou, Bénin</span>
+            </p>
+            <p className="flex items-center gap-1.5">
+              <Phone className="w-3 h-3 text-pink-500" />
+              <span>Service client : +229 01 92 57 06 65</span>
+            </p>
+          </div>
+
+          <div className="text-[10px] text-stone-500 font-light flex flex-col items-start md:items-end gap-1">
+            <p>© 2026 Golden Circle. Tous droits réservés.</p>
+            <div className="flex gap-4">
+              <span>Paiement à la Livraison (COD)</span>
+              <span>Trichologie Organique Certifiée</span>
             </div>
           </div>
 
-          <div className="md:col-span-3 space-y-4">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-pink-500">Cures Golden Circle</h4>
-            <ul className="space-y-2 text-xs text-stone-400 font-light">
-              <li><a href="#cures-section" className="hover:text-pink-400 transition">Cure Initiale (10 000 FCFA)</a></li>
-              <li><a href="#cures-section" className="hover:text-pink-400 transition">Cure Duo (17 000 FCFA)</a></li>
-              <li><a href="#cures-section" className="hover:text-pink-400 transition">Cure Complete (22 000 FCFA)</a></li>
-              <li><a href="#diagnostic" className="hover:text-pink-400 transition">Diagnostic Trichologique IA</a></li>
-            </ul>
-          </div>
-
-          <div className="md:col-span-4 space-y-6">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-pink-500">Service Client & Securite</h4>
-            <p className="text-stone-400 text-xs leading-relaxed font-light">
-               Commandez en toute tranquillite. Le paiement se fait à la livraison apres inspection du colis chez vous. Aucun prelevement prealable.
-            </p>
-          </div>
-
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 md:px-8 mt-12 pt-8 border-t border-stone-900 text-center text-[10px] text-stone-500 font-light flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p>© 2026 Golden Circle Hair Cosmetics. Tous droits réservés. Fidjrossè, Cotonou, Bénin.</p>
-          <div className="flex gap-6">
-            <span>Sécurisé par Cash on Delivery (COD)</span>
-            <span>Trichologie Organique Certifiée</span>
-          </div>
         </div>
       </footer>
 
@@ -2020,6 +2113,26 @@ Merci de confirmer ma commande et de planifier l'expedition !`;
           </div>
         )}
       </AnimatePresence>
+
+      {/* 17. FLOATING WHATSAPP BUTTON (Service Client) */}
+      <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2">
+        {/* Decorative dynamic notification tooltip */}
+        <div className="bg-white text-stone-900 border border-stone-100 shadow-xl px-3 py-1.5 rounded-2xl text-[10px] sm:text-xs font-bold flex items-center gap-1.5 animate-bounce mb-1">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+          <span>Besoin d'aide ? Écrivez-nous !</span>
+        </div>
+        <a 
+          href={`https://wa.me/${BENIN_WHATSAPP}?text=${encodeURIComponent("Bonjour, j'aimerais avoir plus d'informations sur vos produits de soin capillaire Golden Circle.")}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-14 h-14 bg-[#25D366] text-white rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all flex items-center justify-center border border-white/20 relative group cursor-pointer"
+          title="Discuter sur WhatsApp"
+        >
+          {/* Ripple effect */}
+          <span className="absolute -inset-1 rounded-full bg-[#25D366]/20 animate-ping pointer-events-none" />
+          <MessageCircle className="w-7 h-7 fill-white text-[#25D366]" />
+        </a>
+      </div>
 
     </div>
   );
