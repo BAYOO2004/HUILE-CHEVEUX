@@ -47,49 +47,49 @@ import { initMetaPixel, trackMetaEvent } from './lib/metaPixel';
 const bottleImg = "https://pluhjzrozhfkyzbuwqij.supabase.co/storage/v1/object/public/IMAGES/HUILE%20IMAGES/gen-019f2717-1866-7f50-914c-71f793be62c3-0.png";
 import lifestyleImg from './assets/images/hair_lifestyle_1783326007965.jpg';
 
-// Premium high-converting Cures configuration
+/// Premium high-converting Cures configuration
 const CURES = [
   {
     id: 'cure_1',
     name: 'Flacon Individuel',
     bottlesCount: 1,
-    volume: '100ml (1 flacon)',
-    price: 10000,
-    originalPrice: 15000,
+    volume: '1 flacon',
+    price: 7000,
+    originalPrice: 10000,
     discountLabel: 'Livraison Gratuite',
-    tag: 'Découvrir l\'efficacité',
+    tag: 'Essai de l\'efficacité',
     tagColor: 'bg-stone-100 text-stone-700 border-stone-200',
-    description: 'Un flacon de notre huile d\'excellence pour initier votre routine capillaire. Nourrit le cuir chevelu en profondeur et stimule les repousses.',
+    description: 'Une bouteille de notre formule d\'excellence pour initier votre routine capillaire. Parfait pour tester la texture légère et commencer à stimuler vos bulbes capillaires en douceur.',
     popular: false,
-    badgeText: 'Essai'
+    badgeText: 'Essai sans risque'
   },
   {
     id: 'cure_2',
     name: 'Pack Duo Économique',
     bottlesCount: 2,
-    volume: '2 flacons de 100ml',
-    price: 17000,
-    originalPrice: 30000,
-    discountLabel: 'Économisez 3 000 FCFA + Livraison Gratuite',
-    tag: 'Application régulière sans pause',
+    volume: 'Cure de 2 flacons',
+    price: 12000,
+    originalPrice: 20000,
+    discountLabel: 'Économisez 2 000 FCFA + Livraison Gratuite',
+    tag: 'Rapport Qualité/Prix optimal',
     tagColor: 'bg-pink-50 text-[#391CB7] border-pink-200/50',
-    description: 'Deux flacons identiques pour prolonger l\'application. Éviter toute rupture de stock vous garantit des résultats plus rapides et plus visibles.',
+    description: 'Deux flacons identiques pour prolonger l\'application. C\'est l\'assurance de nourrir vos racines en continu pendant la phase cruciale de transition, maximisant vos chances de succès sans aucune interruption.',
     popular: false,
-    badgeText: 'Forte Vente'
+    badgeText: 'Recommandé pour débuter'
   },
   {
     id: 'cure_3',
-    name: 'Pack Trio Recommandé',
+    name: 'Pack Trio Sérénité',
     bottlesCount: 3,
-    volume: '3 flacons de 100ml',
-    price: 22000,
-    originalPrice: 45000,
-    discountLabel: 'Économisez 8 000 FCFA + Livraison Gratuite',
-    tag: 'Traitement continu & Résultats maximaux',
+    volume: 'Cure Complète de 3 flacons',
+    price: 16000,
+    originalPrice: 30000,
+    discountLabel: 'Économisez 5 000 FCFA + Livraison Gratuite',
+    tag: 'Garantie Totale & Repousse Maximale',
     tagColor: 'bg-pink-100 text-pink-700 border-pink-300/60',
-    description: 'Trois flacons identiques de 100ml pour une utilisation continue. C\'est le choix idéal pour nourrir durablement les bulbes capillaires et maximiser la repousse.',
+    description: 'Trois flacons pour un cycle cellulaire capillaire complet. C\'est l\'option la plus rentable et scientifiquement logique pour réactiver durablement les bulbes endormis. Couvert par notre garantie Satisfait ou Remboursé à 100%.',
     popular: true,
-    badgeText: 'Meilleure Valeur (97% de satisfaction)'
+    badgeText: 'Le Choix de 93% des Clients (Rapport Repousse/Prix Imbattable)'
   }
 ];
 
@@ -113,8 +113,8 @@ const BENIN_CITIES = [
 const BENIN_WHATSAPP = import.meta.env.VITE_WHATSAPP_NUMBER || '2290192570665'; // Benin Order Hotline
 
 // Shipping calculation helper
-const getShippingPrice = (city: string, bottlesCount: number, price: number = 10000) => {
-  if (price >= 10000) return 0;
+const getShippingPrice = (city: string, bottlesCount: number, price: number = 7000) => {
+  if (price >= 7000) return 0;
   if (bottlesCount >= 3) return 0;
   const isLocal = ['Cotonou', 'Abomey-Calavi', 'Porto-Novo'].includes(city);
   if (isLocal) {
@@ -152,28 +152,28 @@ const REVIEWS = [
     city: "Parakou", 
     text: "Resultats visibles sur la chute des la deuxieme semaine. Mes cheveux crepus sont beaucoup plus doux, hydrates et faciles a coiffer. Je recommande vivement l'option de 3 flacons pour un traitement sans pause.", 
     rating: 5,
-    avatar: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&q=80&w=120&h=120"
+    avatar: "https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?auto=format&fit=crop&q=80&w=120&h=120"
   },
   { 
     name: "Sika Lawson", 
     city: "Ouidah", 
     text: "Je l'applique tous les soirs sur mon cuir chevelu. Mes cheveux qui stagnaient depuis un an ont enfin pris de la longueur et du volume. Produit d'une qualite rare au Benin.", 
     rating: 5,
-    avatar: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&q=80&w=120&h=120"
+    avatar: "https://images.unsplash.com/photo-1589156280159-27698a70f29e?auto=format&fit=crop&q=80&w=120&h=120"
   },
   { 
     name: "Abdoulaye Bio", 
     city: "Djougou", 
     text: "Le service client est exceptionnel et la livraison a Djougou s'est faite tres rapidement. Le paiement a la livraison m'a beaucoup rassure. L'huile est d'une efficacite redoutable.", 
     rating: 5,
-    avatar: "https://images.unsplash.com/photo-1506277886164-e25aa3f4ef7f?auto=format&fit=crop&q=80&w=120&h=120"
+    avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=120&h=120"
   },
   { 
     name: "Grace Gbaguidi", 
     city: "Abomey-Calavi", 
     text: "Je souffrais d'alopecie de traction severe. Apres un mois d'utilisation, les trous se referment avec de vrais cheveux vigoureux. Merci Golden Circle !", 
     rating: 5,
-    avatar: "https://images.unsplash.com/photo-1523825036634-a6225091a95a?auto=format&fit=crop&q=80&w=120&h=120"
+    avatar: "https://images.unsplash.com/photo-1607746882042-944635dfe10e?auto=format&fit=crop&q=80&w=120&h=120"
   }
 ];
 
@@ -1479,6 +1479,8 @@ Merci de confirmer ma commande et de planifier l'expedition !`;
             })}
           </div>
 
+
+
           {/* Core Guarantee banner */}
           <div className="mt-12 p-6 bg-pink-50/10 border border-pink-100 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-4 text-left">
@@ -1701,7 +1703,13 @@ Merci de confirmer ma commande et de planifier l'expedition !`;
                     rel="noopener noreferrer"
                     className="w-full py-4.5 rounded-full bg-[#25D366] hover:bg-[#20ba5a] text-white font-extrabold text-sm uppercase tracking-widest shadow-lg flex items-center justify-center gap-3 transition-all duration-300 transform hover:scale-105 active:scale-95 border border-white/20 animate-bounce"
                   >
-                    <MessageCircle className="w-5 h-5 fill-white" />
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      viewBox="0 0 24 24" 
+                      className="w-5 h-5 fill-white"
+                    >
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.746.953 3.71 1.455 5.703 1.455h.004c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+                    </svg>
                     <span>Cliquez ici pour finaliser sur WhatsApp</span>
                   </a>
 
@@ -1822,11 +1830,11 @@ Merci de confirmer ma commande et de planifier l'expedition !`;
             {[
               {
                 q: "Combien de temps dure un flacon de Golden Circle ?",
-                a: "La durée d'un flacon dépend entièrement de votre fréquence d'utilisation personnelle et de la taille de la zone à traiter. Tous nos flacons contiennent exactement le même produit et le même volume (100ml). Pour une application continue sans risque d'interruption de votre routine capillaire, nous vous suggérons d'opter pour nos offres de plusieurs flacons."
+                a: "La durée d'un flacon dépend entièrement de votre fréquence d'utilisation personnelle et de la taille de la zone à traiter. Tous nos flacons contiennent exactement la même formule et la même généreuse quantité. Pour une application continue sans risque d'interruption de votre routine capillaire, nous vous suggérons d'opter pour nos offres de plusieurs flacons pour consolider vos acquis."
               },
               {
                 q: "Quel est l'avantage de commander 2 ou 3 flacons à la fois ?",
-                a: "Chaque flacon est absolument identique en formule et en dimension (100ml). En choisissant nos options duo ou trio, vous bénéficiez d'une réduction progressive importante sur le prix de chaque flacon. De plus, disposer d'une réserve vous permet de nourrir vos bulbes capillaires de manière constante et régulière, ce qui accélère et consolide les résultats de repousse."
+                a: "Chaque flacon est absolument identique en formule et en dimension. En choisissant nos options duo ou trio, vous bénéficiez d'une réduction progressive importante sur le prix de chaque flacon et de la livraison gratuite. De plus, disposer d'une réserve vous évite les ruptures de stock qui annulent vos efforts, vous permettant de nourrir vos bulbes de manière constante et de maximiser l'efficacité à long terme."
               },
               {
                 q: "Comment se deroule la livraison au Benin ?",
@@ -2213,7 +2221,13 @@ Merci de confirmer ma commande et de planifier l'expedition !`;
         >
           {/* Ripple effect */}
           <span className="absolute -inset-1 rounded-full bg-[#25D366]/20 animate-ping pointer-events-none" />
-          <MessageCircle className="w-7 h-7 fill-white text-[#25D366]" />
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            viewBox="0 0 24 24" 
+            className="w-7 h-7 fill-white"
+          >
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.746.953 3.71 1.455 5.703 1.455h.004c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+          </svg>
         </a>
       </div>
 
