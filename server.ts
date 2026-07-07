@@ -27,12 +27,18 @@ const ai = new GoogleGenAI({
 let supabase: any = null;
 function getSupabase() {
   if (!supabase) {
-    const url = process.env.SUPABASE_URL;
+    let url = process.env.SUPABASE_URL;
     const key = process.env.SUPABASE_ANON_KEY;
     if (url && key && url !== "https://your-project-id.supabase.co" && key !== "your-anon-public-key") {
       try {
+        // Clean trailing rest/v1 paths injected by environment template if present
+        if (url.endsWith("/rest/v1/")) {
+          url = url.slice(0, -9);
+        } else if (url.endsWith("/rest/v1")) {
+          url = url.slice(0, -8);
+        }
         supabase = createClient(url, key);
-        console.log("Supabase client initialized successfully.");
+        console.log("Supabase client initialized successfully with base URL:", url);
       } catch (e) {
         console.error("Failed to initialize Supabase client:", e);
       }
@@ -173,6 +179,16 @@ app.post("/api/orders", async (req, res) => {
       if (error) {
         supabaseError = error.message;
         console.error("Supabase insert error details:", JSON.stringify(error, null, 2));
+        if (error.code === 'PGRST205' || (error.message && error.message.includes('Could not find the table'))) {
+          console.error("\n=========================================================");
+          console.error("⚠️ TABLE 'orders' MANQUANTE DANS SUPABASE ⚠️");
+          console.error("Pour corriger cette erreur et synchroniser vos commandes :");
+          console.error("1. Copiez le contenu du fichier '/supabase_schema.sql'");
+          console.error("2. Collez-le dans le 'SQL Editor' de votre tableau de bord Supabase");
+          console.error("3. Cliquez sur 'Run' pour créer la table et configurer l'accès public.");
+          console.error("=========================================================\n");
+          supabaseError = "Table 'orders' manquante dans votre base Supabase. Veuillez appliquer le schéma SQL de /supabase_schema.sql dans votre tableau de bord Supabase.";
+        }
       } else {
         supabaseSynced = true;
         console.log("Order successfully synced to Supabase.");
